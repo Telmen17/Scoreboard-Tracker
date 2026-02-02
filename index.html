@@ -195,6 +195,147 @@
       transform: none;
     }
 
+    /* Time panel (timer / stopwatch) */
+    .time-panel {
+      flex-shrink: 0;
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0.75rem 1rem 0.9rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .time-header {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 999px;
+      background: #111827;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      gap: 2px;
+      flex-shrink: 0;
+    }
+
+    .time-tab {
+      border: none;
+      border-radius: 999px;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: transparent;
+      color: var(--muted);
+      transition: background 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .time-tab--active {
+      background: rgba(0, 212, 170, 0.16);
+      color: var(--home);
+    }
+
+    .time-display {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      font-size: clamp(1.4rem, 3.4vw, 2.2rem);
+      letter-spacing: 0.08em;
+      text-align: center;
+      min-width: 5.5ch;
+    }
+
+    .time-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .time-config {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .time-config label {
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .time-config input {
+      width: 3.2rem;
+      padding: 0.25rem 0.35rem;
+      border-radius: 999px;
+      border: 1px solid rgba(75, 85, 99, 0.9);
+      background: #020617;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.8rem;
+      text-align: center;
+      outline: none;
+    }
+
+    .time-config input:focus-visible {
+      border-color: var(--home);
+      box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.6);
+    }
+
+    .time-buttons {
+      display: inline-flex;
+      gap: 0.5rem;
+    }
+
+    .time-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: #111827;
+      color: var(--text);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      transition: background 0.15s ease, transform 0.12s ease, border-color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .time-btn:hover {
+      background: #020617;
+      transform: translateY(-1px);
+    }
+
+    .time-btn:active {
+      transform: translateY(0);
+    }
+
+    .time-btn--primary {
+      background: var(--home);
+      color: #02110d;
+      border-color: rgba(0, 212, 170, 0.9);
+    }
+
+    .time-btn--primary:hover {
+      background: #11e5bb;
+    }
+
+    .time-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     /* Fullscreen styling */
     body.fullscreen {
       padding: 1rem;
@@ -279,74 +420,176 @@
     </section>
   </main>
 
+  <section class="time-panel" aria-label="Game time controls">
+    <div class="time-header" role="tablist" aria-label="Time mode">
+      <button
+        type="button"
+        class="time-tab time-tab--active"
+        data-mode="timer"
+        id="tab-timer"
+        role="tab"
+        aria-selected="true"
+      >
+        Timer
+      </button>
+      <button
+        type="button"
+        class="time-tab"
+        data-mode="stopwatch"
+        id="tab-stopwatch"
+        role="tab"
+        aria-selected="false"
+      >
+        Stopwatch
+      </button>
+    </div>
+
+    <div class="time-display" id="time-display" aria-live="off">
+      12:00
+    </div>
+
+    <div class="time-controls">
+      <div class="time-config" id="time-config">
+        <label for="timer-minutes">Minutes</label>
+        <input id="timer-minutes" type="number" min="1" max="120" value="12" inputmode="numeric">
+      </div>
+
+      <div class="time-buttons">
+        <button type="button" class="time-btn time-btn--primary" id="time-start-pause">
+          Start
+        </button>
+        <button type="button" class="time-btn" id="time-reset">
+          Reset
+        </button>
+      </div>
+    </div>
+  </section>
+
   <script>
+    // --- Scoreboard state & DOM references ---
     const homeScoreEl = document.getElementById('home-score');
     const awayScoreEl = document.getElementById('away-score');
     const fullscreenBtn = document.getElementById('fullscreen');
     const resetBtn = document.getElementById('reset');
 
+    // In‑memory score values (source of truth for rendering + persistence)
     let homeScore = 0;
     let awayScore = 0;
 
+    // LocalStorage key for persisting scores between page visits
     const STORAGE_KEY = 'scoreboard-scores';
 
+    /**
+     * Load scores from localStorage (if present) and render the UI.
+     * Falls back to 0–0 if nothing is stored or parsing fails.
+     */
     function loadScores() {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const { home, away } = JSON.parse(saved);
+          // Ensure scores are non‑negative numbers
           homeScore = Math.max(0, Number(home) || 0);
           awayScore = Math.max(0, Number(away) || 0);
         }
-      } catch (_) {}
+      } catch (_) {
+        // If anything goes wrong reading/parsing storage, ignore and use defaults
+      }
       render();
     }
 
+    /**
+     * Persist the current scores to localStorage.
+     */
     function saveScores() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ home: homeScore, away: awayScore }));
-      } catch (_) {}
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ home: homeScore, away: awayScore })
+        );
+      } catch (_) {
+        // Storage can fail (e.g. disabled / private mode) — safe to ignore
+      }
     }
 
+    /**
+     * Update score text in the DOM, enable/disable minus buttons,
+     * and write the latest scores to storage.
+     */
     function render() {
       homeScoreEl.textContent = homeScore;
       awayScoreEl.textContent = awayScore;
+
+      // Prevent scores from going below 0 by disabling the minus buttons at 0
       document.getElementById('home-minus').disabled = homeScore === 0;
       document.getElementById('away-minus').disabled = awayScore === 0;
+
       saveScores();
     }
 
-    document.getElementById('home-plus').addEventListener('click', () => { homeScore++; render(); });
-    document.getElementById('home-minus').addEventListener('click', () => { if (homeScore > 0) { homeScore--; render(); } });
-    document.getElementById('away-plus').addEventListener('click', () => { awayScore++; render(); });
-    document.getElementById('away-minus').addEventListener('click', () => { if (awayScore > 0) { awayScore--; render(); } });
+    // --- Score button wiring ---
+    document.getElementById('home-plus').addEventListener('click', () => {
+      homeScore++;
+      render();
+    });
 
+    document.getElementById('home-minus').addEventListener('click', () => {
+      if (homeScore > 0) {
+        homeScore--;
+        render();
+      }
+    });
+
+    document.getElementById('away-plus').addEventListener('click', () => {
+      awayScore++;
+      render();
+    });
+
+    document.getElementById('away-minus').addEventListener('click', () => {
+      if (awayScore > 0) {
+        awayScore--;
+        render();
+      }
+    });
+
+    // Reset scores for both teams back to 0
     resetBtn.addEventListener('click', () => {
       homeScore = 0;
       awayScore = 0;
       render();
     });
 
+    /**
+     * Toggle browser fullscreen for the whole document.
+     * Also swaps the icon and aria‑label on the fullscreen button.
+     */
     function toggleFullscreen() {
+      // Enter fullscreen if not already fullscreen
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().then(() => {
           document.body.classList.add('fullscreen');
           fullscreenBtn.setAttribute('aria-label', 'Exit full screen');
           // Exit fullscreen icon (minimize)
           fullscreenBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l6 6"/><path d="M10 10V7"/><path d="M10 10H7"/><path d="M20 20l-6-6"/><path d="M14 14V17"/><path d="M14 14H17"/></svg>`;
-        }).catch(() => {});
+        }).catch(() => {
+          // If the fullscreen request fails, do nothing special
+        });
       } else {
+        // Exit fullscreen and restore original icon/label
         document.exitFullscreen().then(() => {
           document.body.classList.remove('fullscreen');
           fullscreenBtn.setAttribute('aria-label', 'Toggle full screen');
           // Back to enter fullscreen icon (maximize)
           fullscreenBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M9 9L4 4"/><path d="M20 15v5h-5"/><path d="M15 15l5 5"/></svg>`;
-        }).catch(() => {});
+        }).catch(() => {
+          // Ignore failures to exit fullscreen
+        });
       }
     }
 
     fullscreenBtn.addEventListener('click', toggleFullscreen);
 
+    // Keep UI in sync if the user exits fullscreen via ESC or browser UI
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) {
         document.body.classList.remove('fullscreen');
@@ -356,7 +599,222 @@
       }
     });
 
+    /**
+     * Initialize the compact time controls (Timer + Stopwatch).
+     * Handles mode switching, countdown/count‑up logic, and UI updates.
+     */
+    function initTimeControls() {
+      // Core time UI pieces
+      const timeDisplay = document.getElementById('time-display');
+      const timeStartPauseBtn = document.getElementById('time-start-pause');
+      const timeResetBtn = document.getElementById('time-reset');
+      const timerMinutesInput = document.getElementById('timer-minutes');
+      const timeConfig = document.getElementById('time-config');
+      const timeTabs = Array.from(document.querySelectorAll('.time-tab'));
+
+      // If any piece is missing, quietly bail out (defensive in case markup changes)
+      if (
+        !timeDisplay ||
+        !timeStartPauseBtn ||
+        !timeResetBtn ||
+        !timerMinutesInput ||
+        !timeConfig ||
+        !timeTabs.length
+      ) {
+        return;
+      }
+
+      // mode: which behavior is active — 'timer' (countdown) or 'stopwatch' (count up)
+      let mode = 'timer';
+      let isRunning = false;
+      let intervalId = null;
+
+      // Base configuration pulled from the input when the page loads
+      const DEFAULT_MINUTES = Number(timerMinutesInput.value) || 12;
+
+      // Timer state (countdown)
+      let timerDurationMs = DEFAULT_MINUTES * 60 * 1000; // total duration
+      let timerRemainingMs = timerDurationMs;            // remaining time
+
+      // Stopwatch state (count up)
+      let stopwatchElapsedMs = 0;
+
+      /**
+       * Convert milliseconds into a MM:SS string.
+       */
+      function formatTime(ms) {
+        const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }
+
+      /**
+       * Push the current time value into the `timeDisplay` element,
+       * based on the active mode.
+       */
+      function updateDisplay() {
+        if (mode === 'timer') {
+          timeDisplay.textContent = formatTime(timerRemainingMs);
+        } else {
+          timeDisplay.textContent = formatTime(stopwatchElapsedMs);
+        }
+      }
+
+      /**
+       * Stop whichever interval is running and reset the Start/Pause button UI.
+       */
+      function stopRunning() {
+        if (intervalId !== null) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        isRunning = false;
+        timeStartPauseBtn.textContent = 'Start';
+        timeStartPauseBtn.classList.add('time-btn--primary');
+      }
+
+      /**
+       * Start the shared timer loop.
+       * - In timer mode: decrease remaining time until 0.
+       * - In stopwatch mode: increase elapsed time from 0.
+       */
+      function startTimer() {
+        const start = performance.now();
+        let last = start;
+
+        // We tick every 200ms and compute elapsed time using high‑resolution timestamps.
+        intervalId = setInterval(() => {
+          const now = performance.now();
+          const delta = now - last; // milliseconds since last tick
+          last = now;
+
+          if (mode === 'timer') {
+            timerRemainingMs -= delta;
+
+            // Clamp at 0 and stop when the countdown is finished
+            if (timerRemainingMs <= 0) {
+              timerRemainingMs = 0;
+              updateDisplay();
+              stopRunning();
+              return;
+            }
+          } else {
+            // Stopwatch counts up instead
+            stopwatchElapsedMs += delta;
+          }
+
+          updateDisplay();
+        }, 200);
+      }
+
+      /**
+       * Handler for the Start / Pause button.
+       */
+      function toggleStartPause() {
+        if (isRunning) {
+          // Pause the current timer/stopwatch
+          stopRunning();
+        } else {
+          // Start (or resume) the current mode
+          isRunning = true;
+          timeStartPauseBtn.textContent = 'Pause';
+          timeStartPauseBtn.classList.remove('time-btn--primary');
+          startTimer();
+        }
+      }
+
+      /**
+       * Reset timer/stopwatch back to their initial values.
+       * - Timer: resets to the configured minute value.
+       * - Stopwatch: resets back to 00:00.
+       */
+      function resetTime() {
+        stopRunning();
+
+        if (mode === 'timer') {
+          // Clamp minutes to [1, 120] and recalculate duration
+          const minutes = Math.min(
+            Math.max(1, Number(timerMinutesInput.value) || DEFAULT_MINUTES),
+            120
+          );
+          timerMinutesInput.value = minutes;
+          timerDurationMs = minutes * 60 * 1000;
+          timerRemainingMs = timerDurationMs;
+        } else {
+          stopwatchElapsedMs = 0;
+        }
+
+        updateDisplay();
+      }
+
+      /**
+       * Switch between Timer and Stopwatch modes.
+       * This stops any running interval and updates the tab UI + config visibility.
+       */
+      function switchMode(nextMode) {
+        if (nextMode === mode) return;
+
+        stopRunning();
+        mode = nextMode;
+
+        // Update tab styling and aria‑selected for accessibility
+        timeTabs.forEach((tab) => {
+          const tabMode = tab.getAttribute('data-mode');
+          const isActive = tabMode === mode;
+          tab.classList.toggle('time-tab--active', isActive);
+          tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+
+        // Only show the minute configuration when in Timer mode
+        if (mode === 'timer') {
+          timeConfig.style.display = 'inline-flex';
+        } else {
+          timeConfig.style.display = 'none';
+        }
+
+        updateDisplay();
+      }
+
+      // --- Wire up UI events for time controls ---
+
+      // Start/Pause button
+      timeStartPauseBtn.addEventListener('click', toggleStartPause);
+
+      // Reset button
+      timeResetBtn.addEventListener('click', resetTime);
+
+      // Mode tabs (Timer / Stopwatch)
+      timeTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const nextMode = tab.getAttribute('data-mode') || 'timer';
+          switchMode(nextMode);
+        });
+      });
+
+      // When the minutes input changes, recompute timer duration (only in Timer mode)
+      timerMinutesInput.addEventListener('change', () => {
+        if (mode !== 'timer') return;
+
+        stopRunning();
+        const minutes = Math.min(
+          Math.max(1, Number(timerMinutesInput.value) || DEFAULT_MINUTES),
+          120
+        );
+        timerMinutesInput.value = minutes;
+        timerDurationMs = minutes * 60 * 1000;
+        timerRemainingMs = timerDurationMs;
+        updateDisplay();
+      });
+
+      // Initial draw when the page loads
+      updateDisplay();
+    }
+
+    // Kick everything off:
+    // 1) restore scores from localStorage, 2) wire up time controls.
     loadScores();
+    initTimeControls();
   </script>
 </body>
 </html>
