@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scoreboard Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --home: #00d4aa;
+      --away: #ff6b6b;
+      --text: #e8eaed;
+      --muted: #8b949e;
+      --radius: 16px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      min-height: 100vh;
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      padding: clamp(0.5rem, 2vw, 1rem);
+      gap: clamp(0.5rem, 2vw, 1rem);
+    }
+
+    /* Top bar: fullscreen + reset */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .btn-icon {
+      width: clamp(40px, 4vw, 56px);
+      height: clamp(40px, 4vw, 56px);
+      border: none;
+      border-radius: 12px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1rem, 2vw, 1.5rem);
+      transition: transform 0.15s, background 0.2s;
+      box-shadow: var(--shadow);
+    }
+
+    .btn-icon:hover {
+      background: #243044;
+      transform: scale(1.05);
+    }
+
+    .btn-icon:active {
+      transform: scale(0.98);
+    }
+
+    .btn-reset {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+      color: white;
+    }
+
+    .btn-reset:hover {
+      background: linear-gradient(135deg, #ec7063 0%, #e74c3c 100%);
+    }
+
+    /* Main scoreboard area - takes most of the screen */
+    .scoreboard {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(0.5rem, 3vw, 1.5rem);
+      min-height: 0;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .side {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: clamp(1rem, 4vw, 2rem);
+      box-shadow: var(--shadow);
+      min-height: 200px;
+    }
+
+    .side.home {
+      border: 2px solid rgba(0, 212, 170, 0.3);
+      box-shadow: 0 0 40px rgba(0, 212, 170, 0.08);
+    }
+
+    .side.away {
+      border: 2px solid rgba(255, 107, 107, 0.3);
+      box-shadow: 0 0 40px rgba(255, 107, 107, 0.08);
+    }
+
+    .label {
+      font-size: clamp(0.75rem, 1.5vw + 1vh, 1.25rem);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      margin-bottom: clamp(0.25rem, 1vh, 0.75rem);
+    }
+
+    .side.home .label { color: var(--home); }
+    .side.away .label { color: var(--away); }
+
+    /* Score: extra huge for projection/TV — maximized for distance viewing */
+    .score {
+      font-size: clamp(4rem, 10vw + 8vh, 24rem);
+      font-weight: 800;
+      line-height: 1;
+      margin: 0.05em 0;
+      text-shadow: 0 6px 40px rgba(0, 0, 0, 0.5);
+      letter-spacing: -0.03em;
+    }
+
+    .side.home .score { color: var(--home); }
+    .side.away .score { color: var(--away); }
+
+    .buttons {
+      display: flex;
+      align-items: center;
+      gap: clamp(0.5rem, 2vw, 1rem);
+      margin-top: clamp(0.5rem, 2vw, 1rem);
+    }
+
+    /* Buttons: responsive but kept relatively small so the score stays the focus */
+    .btn-score {
+      width: clamp(40px, 3vw + 3vh, 56px);
+      height: clamp(40px, 3vw + 3vh, 56px);
+      border: none;
+      border-radius: 50%;
+      font-size: clamp(1.25rem, 2vw + 2vh, 1.75rem);
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s, box-shadow 0.2s;
+      color: white;
+    }
+
+    .btn-minus {
+      background: linear-gradient(145deg, #3d4a5c 0%, #2a3544 100%);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-plus {
+      background: linear-gradient(145deg, #2ecc71 0%, #27ae60 100%);
+      box-shadow: 0 4px 16px rgba(46, 204, 113, 0.4);
+    }
+
+    .side.away .btn-plus {
+      background: linear-gradient(145deg, #e74c3c 0%, #c0392b 100%);
+      box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+    }
+
+    .btn-score:hover {
+      transform: scale(1.08);
+    }
+
+    .btn-score:active {
+      transform: scale(0.95);
+    }
+
+    .btn-score:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Fullscreen styling */
+    body.fullscreen {
+      padding: 1rem;
+    }
+
+    .fullscreen .scoreboard {
+      max-width: none;
+    }
+
+    /* Responsive breakpoints for different screen sizes */
+    @media (max-width: 768px) {
+      .score {
+        font-size: clamp(3rem, 14vw, 10rem);
+      }
+      
+      .btn-score {
+        width: clamp(44px, 8vw, 52px);
+        height: clamp(44px, 8vw, 52px);
+        font-size: clamp(1.5rem, 4vw, 1.75rem);
+      }
+    }
+
+    @media (max-width: 500px) {
+      .scoreboard {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 1fr;
+      }
+
+      .side {
+        min-height: 180px;
+      }
+      
+      .score {
+        font-size: clamp(2.5rem, 18vw, 8rem);
+      }
+    }
+
+    /* Large screens - maximize score size */
+    @media (min-width: 1920px) {
+      .score {
+        font-size: clamp(12rem, 16vw, 30rem);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <button type="button" class="btn-icon btn-fullscreen" id="fullscreen" title="Toggle full screen" aria-label="Toggle full screen">
+      <!-- Enter fullscreen icon (maximize) -->
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 9V4h5"/>
+        <path d="M9 9L4 4"/>
+        <path d="M20 15v5h-5"/>
+        <path d="M15 15l5 5"/>
+      </svg>
+    </button>
+    <button type="button" class="btn-icon btn-reset" id="reset" title="Reset scores to 0" aria-label="Reset scores">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+        <path d="M3 3v5h5"/>
+      </svg>
+    </button>
+  </div>
+
+  <main class="scoreboard">
+    <section class="side home" aria-label="Home score">
+      <span class="label">Home</span>
+      <div class="score" id="home-score">0</div>
+      <div class="buttons">
+        <button type="button" class="btn-score btn-minus" id="home-minus" aria-label="Decrease home score">−</button>
+        <button type="button" class="btn-score btn-plus" id="home-plus" aria-label="Increase home score">+</button>
+      </div>
+    </section>
+
+    <section class="side away" aria-label="Away score">
+      <span class="label">Away</span>
+      <div class="score" id="away-score">0</div>
+      <div class="buttons">
+        <button type="button" class="btn-score btn-minus" id="away-minus" aria-label="Decrease away score">−</button>
+        <button type="button" class="btn-score btn-plus" id="away-plus" aria-label="Increase away score">+</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const homeScoreEl = document.getElementById('home-score');
+    const awayScoreEl = document.getElementById('away-score');
+    const fullscreenBtn = document.getElementById('fullscreen');
+    const resetBtn = document.getElementById('reset');
+
+    let homeScore = 0;
+    let awayScore = 0;
+
+    const STORAGE_KEY = 'scoreboard-scores';
+
+    function loadScores() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const { home, away } = JSON.parse(saved);
+          homeScore = Math.max(0, Number(home) || 0);
+          awayScore = Math.max(0, Number(away) || 0);
+        }
+      } catch (_) {}
+      render();
+    }
+
+    function saveScores() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ home: homeScore, away: awayScore }));
+      } catch (_) {}
+    }
+
+    function render() {
+      homeScoreEl.textContent = homeScore;
+      awayScoreEl.textContent = awayScore;
+      document.getElementById('home-minus').disabled = homeScore === 0;
+      document.getElementById('away-minus').disabled = awayScore === 0;
+      saveScores();
+    }
+
+    document.getElementById('home-plus').addEventListener('click', () => { homeScore++; render(); });
+    document.getElementById('home-minus').addEventListener('click', () => { if (homeScore > 0) { homeScore--; render(); } });
+    document.getElementById('away-plus').addEventListener('click', () => { awayScore++; render(); });
+    document.getElementById('away-minus').addEventListener('click', () => { if (awayScore > 0) { awayScore--; render(); } });
+
+    resetBtn.addEventListener('click', () => {
+      homeScore = 0;
+      awayScore = 0;
+      render();
+    });
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          document.body.classList.add('fullscreen');
+          fullscreenBtn.setAttribute('aria-label', 'Exit full screen');
+          // Exit fullscreen icon (minimize)
+          fullscreenBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l6 6"/><path d="M10 10V7"/><path d="M10 10H7"/><path d="M20 20l-6-6"/><path d="M14 14V17"/><path d="M14 14H17"/></svg>`;
+        }).catch(() => {});
+      } else {
+        document.exitFullscreen().then(() => {
+          document.body.classList.remove('fullscreen');
+          fullscreenBtn.setAttribute('aria-label', 'Toggle full screen');
+          // Back to enter fullscreen icon (maximize)
+          fullscreenBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M9 9L4 4"/><path d="M20 15v5h-5"/><path d="M15 15l5 5"/></svg>`;
+        }).catch(() => {});
+      }
+    }
+
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) {
+        document.body.classList.remove('fullscreen');
+        fullscreenBtn.setAttribute('aria-label', 'Toggle full screen');
+        // Ensure we always restore the enter fullscreen icon
+        fullscreenBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M9 9L4 4"/><path d="M20 15v5h-5"/><path d="M15 15l5 5"/></svg>`;
+      }
+    });
+
+    loadScores();
+  </script>
+</body>
+</html>
