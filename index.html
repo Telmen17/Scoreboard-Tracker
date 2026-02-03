@@ -379,6 +379,30 @@
         font-size: clamp(12rem, 16vw, 30rem);
       }
     }
+
+    /* Footer branding — minimal so it doesn’t distract */
+    .app-footer {
+      flex-shrink: 0;
+      text-align: center;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .app-footer a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .app-footer a:hover {
+      color: var(--text);
+    }
+
+    .app-footer__back {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+    }
   </style>
 </head>
 <body>
@@ -816,5 +840,10 @@
     loadScores();
     initTimeControls();
   </script>
+
+  <footer class="app-footer" role="contentinfo">
+    <a href="https://gamestatlab.com/2026/02/02/friendly-match-scoreboard-tracker/" class="app-footer__back" target="_top" rel="noopener noreferrer">← Back to blog</a>
+    <p style="margin: 0;">Made by <a href="https://gamestatlab.com" target="_blank" rel="noopener noreferrer">gamestatlab.com</a></p>
+  </footer>
 </body>
 </html>
